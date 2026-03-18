@@ -1,148 +1,136 @@
 ---
 layout: default
-title: "Local-First Sync — Zero / PowerSync"
+title: "Local-First Sync"
 ---
 
-[← Back to Overview](./)
+<h1>Local-First Sync <span class="gradient">Zero / PowerSync</span></h1>
+<span class="verdict skip">⏸ Skip — Current Stack Works</span>
 
-# Local-First Sync: Zero vs PowerSync vs Current RxDB
+<div class="meta-bar">
+  <div class="meta-item"><span class="meta-label">Replaces</span><span class="meta-value">RxDB + TanStack DB + custom replication</span></div>
+  <div class="meta-item"><span class="meta-label">Effort</span><span class="meta-value">6-12 months</span></div>
+  <div class="meta-item"><span class="meta-label">Risk</span><span class="meta-value" style="color: var(--red)">High</span></div>
+  <div class="meta-item"><span class="meta-label">Timeline</span><span class="meta-value">Revisit Q4+</span></div>
+</div>
 
-**Verdict:** Skip for now — revisit when Zero reaches GA  
-**Migration Effort:** 6-12 months (massive)  
-**Risk:** High
+## Current Stack
 
----
+Brev's local-first layer:
+- **RxDB** with IndexedDB — primary client-side database
+- **TanStack DB** — reactive queries over RxDB collections
+- **TanStack Query** — server-originated async data (auth, billing, config)
+- **Custom replication** — syncs to Aurora PostgreSQL
 
-## Current State
-
-Brev's local-first stack:
-- **RxDB** with IndexedDB storage as the primary client-side database
-- **TanStack DB** for reactive queries over RxDB collections
-- **TanStack Query** for server-originated async data (auth, billing, config)
-- **Custom replication** to Aurora PostgreSQL
-
-This stack is already implemented and working. The question is whether newer alternatives offer enough improvement to justify a complete rewrite.
+This is **working in production**. The question is whether newer tools justify a complete rewrite.
 
 ---
 
 ## Zero (by Rocicorp)
 
-**What it is:** A query-driven sync engine that maintains a client-side store of recently used rows and syncs exactly the data you need, when you need it.
+A query-driven sync engine — only syncs rows that active queries need.
 
-### How It Works
-- ZQL (Zero Query Language) for client-side queries
-- Query-driven sync: only syncs data that active queries request
-- Server-side permissions and business logic
-- Built for PostgreSQL — works with Aurora
-
-### Key Benefits
-- **No custom replication logic** — sync is handled by the framework
-- **Query-driven** — avoids "download everything" problem
-- **Instant reads/writes** — client-first with automatic reconciliation
-- **Proven concept** — 1.2M row demo loads in <2s
-
-### Current Status
-- **Private beta** with managed hosting
-- Pricing: Hobby $30/month → BYOC $1000+/month (TBD)
-- No public GA date announced
-
-### Pros
-| Benefit | Details |
-|---------|---------|
-| Eliminates custom replication | No more maintaining sync logic |
-| Works with Aurora Postgres | Direct Postgres integration |
-| Smart sync boundaries | Only syncs what's needed |
-| Client performance | Proven fast at scale |
-
-### Cons
-| Risk | Details |
-|------|---------|
-| **Private beta** | No production guarantees |
-| **Unknown pricing** | Could be expensive at scale |
-| **Full rewrite required** | Every client-side data access pattern changes |
-| **ZQL learning curve** | New query language for the team |
-| **Replaces TanStack DB** | Lose existing investment in TanStack patterns |
-| **12+ month effort** | Including testing across all integrations |
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>Eliminates custom replication</strong> — sync logic handled by the framework, no more maintaining custom sync code</li>
+<li><strong>Query-driven sync</strong> — only downloads data that components actually request, avoiding "sync everything" overhead</li>
+<li><strong>Works with Aurora Postgres</strong> — direct PostgreSQL integration, not Supabase-only</li>
+<li><strong>Instant reads/writes</strong> — client-first operations with automatic server reconciliation</li>
+<li><strong>Proven scale</strong> — 1.2M row demo loads in under 2 seconds</li>
+<li><strong>Built by Replicache team</strong> — deep expertise in sync systems</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>Private beta only</strong> — no public GA date, no production guarantees</li>
+<li><strong>Unknown pricing</strong> — Hobby $30/mo, BYOC $1000+/mo (final pricing TBD)</li>
+<li><strong>Complete client-side rewrite</strong> — every data access pattern changes from RxDB/TanStack to ZQL</li>
+<li><strong>Replaces TanStack DB investment</strong> — lose all existing reactive query patterns</li>
+<li><strong>ZQL learning curve</strong> — new query language for the entire team</li>
+<li><strong>6-12 month migration</strong> — touches every component that reads/writes data</li>
+<li><strong>Not self-hostable</strong> — managed service only (vendor lock-in risk)</li>
+</ul>
+</div>
+</div>
 
 ---
 
 ## PowerSync
 
-**What it is:** PostgreSQL-to-SQLite sync engine with client SDKs for managing local persistence and real-time syncing.
+PostgreSQL-to-SQLite sync engine — uses SQLite (via wa-sqlite) on the client.
 
-### How It Works
-- Uses SQLite on the client (via wa-sqlite in browser)
-- Syncs from Postgres via change data capture
-- Sync rules defined server-side
-- Offline-first with conflict resolution
-
-### Key Benefits
-- **SQLite on client** — more predictable than IndexedDB
-- **Open source** (source-available core)
-- **Mature** — not in beta
-- **Direct Postgres integration** — works with Aurora
-
-### Pros
-| Benefit | Details |
-|---------|---------|
-| Production-ready | More mature than Zero |
-| Open source | Source-available, self-hostable |
-| SQLite reliability | More predictable than IndexedDB |
-| Good JS/TS SDK | Strong TypeScript support |
-
-### Cons
-| Risk | Details |
-|------|---------|
-| **SQLite browser limits** | Size constraints vs IndexedDB |
-| **Data modeling changes** | Significant rewrite needed |
-| **TanStack DB incompatible** | Different query patterns |
-| **Requires PowerSync service** | Additional infrastructure |
-| **Smaller ecosystem** | Less community support than RxDB |
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>Production-ready</strong> — not in beta, more mature than Zero</li>
+<li><strong>Open source</strong> — source-available, self-hostable on AWS</li>
+<li><strong>SQLite reliability</strong> — more predictable than IndexedDB in browsers</li>
+<li><strong>Direct Postgres integration</strong> — change data capture from Aurora</li>
+<li><strong>Strong TypeScript SDK</strong> — good developer experience</li>
+<li><strong>Standard SQL queries</strong> — no new query language to learn</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>SQLite browser size limits</strong> — storage constraints compared to IndexedDB</li>
+<li><strong>Significant data modeling changes</strong> — different schema patterns than RxDB</li>
+<li><strong>TanStack DB incompatible</strong> — different query and reactivity patterns</li>
+<li><strong>Requires PowerSync service</strong> — additional infrastructure to run/host</li>
+<li><strong>Smaller ecosystem</strong> — less community support and fewer plugins than RxDB</li>
+<li><strong>4-8 month migration</strong> — still a massive rewrite of the data layer</li>
+</ul>
+</div>
+</div>
 
 ---
 
-## Current RxDB Approach
+## Current RxDB — Why Keep It
 
-### Why Keep It
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ What's Working</h4>
+<ul>
+<li><strong>Already in production</strong> — tested, deployed, serving users</li>
+<li><strong>Team knowledge</strong> — developers know the patterns and edge cases</li>
+<li><strong>TanStack integration</strong> — TanStack DB + Query well-integrated</li>
+<li><strong>No migration risk</strong> — zero disruption to existing users</li>
+<li><strong>Offline-first</strong> — IndexedDB provides reliable offline storage</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Known Pain Points</h4>
+<ul>
+<li><strong>Custom replication maintenance</strong> — sync logic requires ongoing engineering</li>
+<li><strong>IndexedDB quirks</strong> — browser compatibility and performance inconsistencies</li>
+<li><strong>Sync complexity</strong> — grows with data model complexity</li>
+<li><strong>Conflict resolution</strong> — custom logic for concurrent edits</li>
+</ul>
+</div>
+</div>
 
-| Factor | Details |
-|--------|---------|
-| **Already working** | Implemented, tested, in production |
-| **Team knowledge** | Team knows the patterns and quirks |
-| **TanStack integration** | TanStack DB + TanStack Query are well-integrated |
-| **Proven scale** | Working at current user base |
-| **No migration risk** | No disruption to existing users |
-
-### Known Pain Points (Evaluate)
-
-- Custom replication logic maintenance burden
-- IndexedDB browser compatibility quirks
-- Sync complexity grows with data model complexity
-- Potential performance issues at scale
-
----
-
-## Comparison Matrix
+## Comparison
 
 | Factor | RxDB (Current) | Zero | PowerSync |
-|--------|----------------|------|-----------|
-| **Status** | Production | Private Beta | Production |
-| **Migration Effort** | None | 6-12 months | 4-8 months |
-| **Risk** | None | High | Medium |
-| **Postgres Integration** | Custom | Native | Native |
-| **Offline Support** | ✅ | ✅ | ✅ |
-| **Query Language** | RxDB/TanStack | ZQL | SQL |
-| **Custom Replication** | Required | Not needed | Not needed |
-| **Team Knowledge** | ✅ | ❌ | ❌ |
-| **Self-Hostable** | ✅ | ❌ (managed) | ✅ |
+|--------|:-:|:-:|:-:|
+| **Production status** | ✅ Live | ⚠️ Private beta | ✅ GA |
+| **Migration effort** | None | 6-12 months | 4-8 months |
+| **Risk level** | None | High | Medium |
+| **Custom replication** | Required | Not needed | Not needed |
+| **Aurora Postgres** | Via custom sync | Native | Native |
+| **Self-hostable** | ✅ | ❌ | ✅ |
+| **Team knowledge** | ✅ | ❌ | ❌ |
+| **Query language** | RxDB / TanStack | ZQL (new) | SQL |
 
-## Recommendation
+## Decision
 
-**Keep RxDB for now.** The migration effort (6-12 months) for either alternative is enormous and the current stack works. Revisit when:
-
-1. Zero reaches public GA with clear pricing
-2. Custom replication becomes a significant maintenance burden
-3. You hit scaling limits with the current approach
-4. A major feature requires capabilities the current stack can't provide
+**Keep RxDB.** The effort-to-benefit ratio doesn't justify migration. Revisit when:
+- Zero reaches public GA with stable pricing
+- Custom replication becomes a meaningful engineering drain
+- You hit scaling limits with the current approach
+- A major feature needs capabilities RxDB can't provide
 
 **Don't fix what isn't broken** — especially with a 6-12 month rewrite risk.

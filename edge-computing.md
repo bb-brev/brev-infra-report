@@ -1,126 +1,91 @@
 ---
 layout: default
-title: "Edge Computing — Cloudflare Workers"
+title: "Edge Computing"
 ---
 
-[← Back to Overview](./)
+<h1>Edge Computing <span class="gradient">Cloudflare Workers</span></h1>
+<span class="verdict evaluate">🔍 Evaluate — Surgical Use Only</span>
 
-# Edge Computing: Cloudflare Workers
-
-**Verdict:** Evaluate selectively — use for specific latency-sensitive endpoints only  
-**Migration Effort:** Varies by use case  
-**Risk:** Medium (architectural complexity)
-
----
+<div class="meta-bar">
+  <div class="meta-item"><span class="meta-label">Replaces</span><span class="meta-value">Specific Lambda functions (selective)</span></div>
+  <div class="meta-item"><span class="meta-label">Effort</span><span class="meta-value">Varies by use case</span></div>
+  <div class="meta-item"><span class="meta-label">Risk</span><span class="meta-value" style="color: var(--yellow)">Medium</span></div>
+  <div class="meta-item"><span class="meta-label">Timeline</span><span class="meta-value">Q3+ (measure first)</span></div>
+</div>
 
 ## Current State
 
-- **Cloudflare** for DNS and CDN
-- **Next.js on Lambda** via SST for server rendering and API routes
+- **Cloudflare** for DNS and CDN (already in place)
+- **Next.js on Lambda** via SST for server rendering + API routes
 - **Lambda functions** for all backend processing
-- All compute runs in a single AWS region (us-east-1)
+- All compute in a single AWS region
 
 ---
 
-## What Cloudflare Workers Would Add
+## What Workers Add
 
-| Factor | Lambda (Current) | Workers (Proposed) |
-|--------|-----------------|-------------------|
+| | Lambda (Current) | Workers |
+|---|---|---|
 | **Cold starts** | 100-500ms | ~0ms (V8 isolates) |
 | **Global distribution** | Single region | 330+ cities |
 | **Runtime** | Full Node.js | V8 isolates (limited) |
-| **DB access** | VPC-native (Aurora) | Requires proxy/API |
-| **Max execution** | 15 minutes | 30 seconds (free), 15 min (paid) |
-| **Cost** | Per-invocation + duration | Per-request (cheaper for short tasks) |
+| **DB access** | VPC-native to Aurora | Requires proxy/API |
+| **Max execution** | 15 minutes | 30s free / 15min paid |
 
----
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>Zero cold starts</strong> — V8 isolates start instantly vs 100-500ms Lambda</li>
+<li><strong>Global latency</strong> — sub-50ms for 95% of internet-connected population</li>
+<li><strong>Already using Cloudflare</strong> — incremental addition to existing infra</li>
+<li><strong>Cheap</strong> — free tier: 100k req/day. Paid: $5/mo + $0.50/M requests</li>
+<li><strong>KV storage</strong> — edge-native key-value for cached data</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>Split architecture</strong> — SST manages Lambda, Workers managed separately (Wrangler). Two deployment targets, harder to reason about.</li>
+<li><strong>Can't access Aurora</strong> — Workers are far from your VPC. Every DB query needs a proxy or API call.</li>
+<li><strong>Limited runtime</strong> — V8 isolates, not full Node.js. No native modules.</li>
+<li><strong>Conflicts with SST model</strong> — SST has no native Worker construct. You'd manage it outside your IaC.</li>
+<li><strong>Debugging across platforms</strong> — request flows through Cloudflare → AWS. Two monitoring systems.</li>
+<li><strong>Premature optimization</strong> — are Lambda cold starts actually impacting user experience?</li>
+</ul>
+</div>
+</div>
 
-## Where Workers Make Sense for Brev
+## Where Workers Make Sense
 
-### ✅ Good Candidates
+| Use Case | Benefit | Worth It? |
+|----------|---------|-----------|
+| **Auth middleware** | Instant JWT validation globally | Maybe — measure cold start impact first |
+| **Cached API responses** | Sub-10ms for frequently accessed data | Yes, if specific endpoints are slow |
+| **Feature flag evaluation** | No layout shift, edge-side decisions | Maybe — PostHog client SDK may be sufficient |
+| **A/B routing** | Edge-level traffic splitting | Only if needed |
 
-| Use Case | Current | With Workers | Benefit |
-|----------|---------|-------------|---------|
-| **Auth middleware** | Lambda cold start on every request | Instant JWT validation at edge | Faster page loads globally |
-| **API rate limiting** | None or Cloudflare WAF | Code-level rate limiting per user/route | More granular control |
-| **Feature flag evaluation** | PostHog client-side | Edge-side flag evaluation | No layout shift, faster decisions |
-| **Static API responses** | Lambda + Aurora query | KV-cached responses at edge | Sub-10ms for cached data |
-
-### ❌ Bad Candidates
+## Where Workers Don't Make Sense
 
 | Use Case | Why Not |
 |----------|---------|
-| **AI processing** | Needs full Node.js + long execution |
-| **DB queries** | Aurora is in VPC, Workers can't access directly |
-| **Queue consumers** | Already SQS + Lambda, Workers adds complexity |
+| **AI processing** | Needs full Node.js, long execution |
+| **Database queries** | Aurora is in VPC, Workers can't reach it |
+| **Queue consumers** | SQS + Lambda is the right pattern |
 | **File processing** | Size limits, runtime constraints |
+| **Any core business logic** | Splits architecture for marginal gain |
 
----
+## Before Adopting: Measure First
 
-## Architectural Tension
+> Are Lambda cold starts actually impacting user experience?
 
-The core problem: **SST is built around AWS Lambda.** Adding Workers creates a split architecture:
+1. **Add performance monitoring** (Sentry Performance or Web Vitals) — measure actual TTFB
+2. **Check CloudWatch** — how frequent are cold starts on critical Lambda functions?
+3. **Try simpler solutions first:**
+   - Provisioned concurrency on critical Lambdas (stays within SST)
+   - CloudFront caching for semi-static responses
+   - Lambda SnapStart (when available for Node.js)
 
-```
-User Request
-    ├── Cloudflare Worker (edge logic)
-    │   ├── Auth validation
-    │   ├── Rate limiting
-    │   └── Cached responses
-    │
-    └── Lambda via SST (core logic)
-        ├── DB queries
-        ├── AI processing
-        └── Queue management
-```
+## Decision
 
-This adds complexity:
-- Two deployment pipelines (SST + Wrangler)
-- Two monitoring systems (CloudWatch + Workers Analytics)
-- Two sets of environment variables/secrets
-- Debugging spans across two platforms
-
----
-
-## Pros
-
-| Benefit | Details |
-|---------|---------|
-| **Zero cold starts** | Workers start instantly — no 100-500ms Lambda penalty |
-| **Global latency** | Sub-50ms for 95% of internet-connected population |
-| **Already using Cloudflare** | Incremental addition to existing infrastructure |
-| **Cost-effective** | Free tier: 100k requests/day. Paid: $5/month + $0.50/M requests |
-| **KV/D1 storage** | Edge-native key-value and SQLite for cached data |
-
-## Cons
-
-| Risk | Severity | Details |
-|------|----------|---------|
-| **Split architecture** | 🟡 Medium | Two deployment targets, harder to reason about |
-| **SST conflict** | 🟡 Medium | Workers managed outside SST (or via custom constructs) |
-| **Limited runtime** | 🟡 Medium | V8 isolates — no native Node.js modules |
-| **Data locality** | 🔴 High | Workers are far from Aurora — can't query DB directly |
-| **Debugging** | 🟡 Medium | Request flows across two platforms |
-
----
-
-## Recommendation
-
-**Don't migrate core application logic to Workers.** The SST + Lambda architecture works well.
-
-**Do consider Workers for:**
-1. **Auth middleware** if Lambda cold starts are impacting UX (measure first)
-2. **Cached API responses** via KV for frequently accessed, rarely changed data
-3. **A/B routing** if you need edge-level traffic splitting
-
-**Measure before adopting:**
-- What's the actual Lambda cold start impact on user experience?
-- Are there specific pages where latency is a problem?
-- Would CloudFront caching solve the same problem more simply?
-
-**If Lambda cold starts ARE a problem**, consider these alternatives first:
-- **Provisioned concurrency** on critical Lambda functions (stays within SST)
-- **CloudFront caching** for static/semi-static API responses
-- **Lambda SnapStart** (if available for Node.js)
-
-Workers add value at the margins but introduce architectural complexity. Use surgically, not broadly.
+**Don't migrate core logic to Workers.** SST + Lambda works well. Consider Workers only for specific, measured latency problems at the edge — and only after confirming simpler solutions (provisioned concurrency, caching) don't solve it.

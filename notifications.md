@@ -1,126 +1,123 @@
 ---
 layout: default
-title: "Notifications — Knock / Resend"
+title: "Notifications"
 ---
 
-[← Back to Overview](./)
+<h1>Notifications <span class="gradient">Knock / Resend</span></h1>
+<span class="verdict evaluate">⏳ Evaluate — When In-App Notifications Become a Priority</span>
 
-# Notifications: Knock + Resend vs SendGrid + Slack
-
-**Verdict:** Keep current approach — evaluate Knock if in-app notifications become a priority  
-**Migration Effort:** 4-6 weeks (Knock), 2-4 weeks (Resend)  
-**Risk:** Medium
-
----
+<div class="meta-bar">
+  <div class="meta-item"><span class="meta-label">Replaces</span><span class="meta-value">SendGrid (partially) + adds in-app</span></div>
+  <div class="meta-item"><span class="meta-label">Effort</span><span class="meta-value">4-6 weeks (Knock)</span></div>
+  <div class="meta-item"><span class="meta-label">Risk</span><span class="meta-value" style="color: var(--yellow)">Medium</span></div>
+  <div class="meta-item"><span class="meta-label">Timeline</span><span class="meta-value">Q3+ (when needed)</span></div>
+</div>
 
 ## Current State
 
-- **SendGrid** for transactional email (weekly digests, notifications)
-- **Slack internal tooling token** for Slack notifications
+- **SendGrid** — transactional email (weekly digests, check-in reminders)
+- **Slack internal tooling token** — Slack notifications
 - **No in-app notifications** — users must check email or Slack
+- **Custom digest logic** — Slack daily/weekly digest cron jobs built in-house
 
 ---
 
 ## Knock — Notification Orchestration
 
-**What it is:** Cross-channel notification platform that unifies email, in-app, push, Slack, and SMS behind one API.
+Unifies email, in-app, push, Slack, and SMS behind one API. The compelling piece: **in-app notification center** as a drop-in React component.
 
-### What It Would Add
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>Adds in-app notifications</strong> — currently missing, biggest new capability</li>
+<li><strong>Drop-in React component</strong> — notification bell/center that works with Next.js immediately</li>
+<li><strong>User preferences</strong> — users choose how they want to be notified (reduces fatigue)</li>
+<li><strong>Cross-channel orchestration</strong> — "Slack first, email after 1hr if unread"</li>
+<li><strong>Built-in digest logic</strong> — could simplify existing cron-based Slack/email digests</li>
+<li><strong>Single API</strong> — one call instead of managing SendGrid + Slack separately</li>
+<li><strong>99.99% uptime SLA</strong> — reliable delivery</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>Another vendor</strong> — new billing, dependency, and integration to maintain</li>
+<li><strong>Migration effort</strong> — rewrite SendGrid templates and Slack notification logic</li>
+<li><strong>Existing digest logic wasted</strong> — already built Slack daily/weekly digests with custom cron jobs</li>
+<li><strong>More expensive than SendGrid</strong> — for email-only use case, SendGrid is cheaper</li>
+<li><strong>Overkill right now</strong> — if in-app notifications aren't a near-term requirement</li>
+<li><strong>Learning curve</strong> — notification workflow design patterns are non-trivial</li>
+</ul>
+</div>
+</div>
 
-| Channel | Current | With Knock |
-|---------|---------|-----------|
-| **Email** | SendGrid (manual) | Orchestrated via Knock |
-| **Slack** | Internal token (manual) | Orchestrated via Knock |
-| **In-app** | ❌ None | ✅ Drop-in notification center |
-| **Push** | ❌ None | ✅ Mobile/web push |
-| **SMS** | ❌ None | ✅ Via Knock |
-| **User preferences** | ❌ None | ✅ Users choose channels |
+### Knock Pricing
 
-### Key Features
-- **Notification center component** — drop-in React component for in-app notifications
-- **User preferences** — let users choose how they want to be notified
-- **Digest logic** — batch notifications intelligently (similar to what you built for Slack digests)
-- **Cross-channel orchestration** — send to Slack first, email after 1 hour if unread
-- **99.99% uptime SLA**
-
-### Integration Example
-
-```typescript
-import { Knock } from "@knocklabs/node";
-
-const knock = new Knock(process.env.KNOCK_API_KEY);
-
-// Send a goal check-in reminder across channels
-await knock.workflows.trigger("checkin-reminder", {
-  recipients: [userId],
-  data: {
-    goalName: "Reduce critical bug backlog to zero",
-    dueDate: "2026-03-21",
-    progressUrl: `https://app.brev.io/goals/${goalId}`,
-  },
-});
-// Knock handles: in-app notification + Slack DM + email fallback
-```
-
-### Pros
-| Benefit | Details |
-|---------|---------|
-| **In-app notifications** | Currently missing — adds a new engagement channel |
-| **User preferences** | Users control notification fatigue |
-| **Digest logic** | Could simplify existing Slack/email digest cron jobs |
-| **Single API** | One call instead of managing SendGrid + Slack separately |
-| **React components** | Drop-in notification bell for the frontend |
-
-### Cons
-| Risk | Details |
-|------|---------|
-| **Another vendor** | Adds billing and dependency |
-| **Migration effort** | Need to migrate existing SendGrid templates and Slack logic |
-| **Cost** | More expensive than SendGrid for email-only |
-| **Overkill** | If in-app notifications aren't a near-term priority |
-| **Existing digest logic** | Already built Slack daily/weekly digests — Knock would require rebuilding workflows |
-
-### Pricing
-- Free: 10k notifications/month
-- Growth: $250/month for 25k notifications
-- Enterprise: Custom
+| Tier | Price | Included |
+|------|-------|----------|
+| Free | $0 | 10k notifications/month |
+| Growth | $250/mo | 25k notifications |
+| Enterprise | Custom | Advanced features |
 
 ---
 
 ## Resend — Modern Email API
 
-**What it is:** Developer-friendly email API with React Email template support. Alternative to SendGrid.
+Developer-friendly email with React Email templates. Direct SendGrid replacement.
 
-### Why Consider
-- **React Email** — write email templates as React components (same skills as frontend)
-- **Better DX** — cleaner API than SendGrid
-- **Good deliverability** — focused on email delivery
-
-### Why Skip (For Now)
-| Factor | Details |
-|--------|---------|
-| **No new capability** | Just email, same as SendGrid |
-| **Migration effort** | Rewrite email templates + switch API calls |
-| **SendGrid works** | No urgent problems with current email |
-| **Smaller scale** | Less proven at high volume than SendGrid |
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>React Email templates</strong> — write emails as React components (same skills as frontend)</li>
+<li><strong>Better developer experience</strong> — cleaner API than SendGrid</li>
+<li><strong>Good deliverability</strong> — focused on email delivery</li>
+<li><strong>Modern tooling</strong> — active development, good docs</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>No new capability</strong> — just email, same as SendGrid</li>
+<li><strong>Migration effort without reward</strong> — rewrite templates for marginal improvement</li>
+<li><strong>SendGrid works</strong> — no urgent problems to solve</li>
+<li><strong>Smaller scale</strong> — less proven at high volume</li>
+</ul>
+</div>
+</div>
 
 ---
 
-## Recommendation
+## What Would Change
 
-| Option | Verdict | When |
-|--------|---------|------|
-| **Keep SendGrid + Slack** | ✅ Default | Now |
-| **Add Knock** | Evaluate | When in-app notifications become a priority |
-| **Switch to Resend** | Skip | Not enough benefit to justify migration |
-| **Knock + Resend** | Skip | Two new vendors for marginal improvement |
+### Current Flow (Check-in Reminder)
+```
+EventBridge Cron → Lambda (nexus.main)
+  → query Aurora for due check-ins
+  → SQS (CheckinReminderQueue) → Lambda consumer
+    → SendGrid API (email)
+    → Slack API (internal tooling token)
+```
+
+### With Knock
+```
+EventBridge Cron → Lambda (nexus.main)
+  → query Aurora for due check-ins
+  → Knock API: trigger("checkin-reminder", { user, data })
+    → Knock handles: in-app + Slack + email (with user preferences)
+```
+
+## Decision
+
+| Option | Verdict |
+|--------|---------|
+| **Keep SendGrid + Slack** | ✅ Default for now |
+| **Add Knock** | Evaluate when in-app notifications become a requirement |
+| **Switch to Resend** | Skip — not enough benefit to justify migration |
 
 ### When to Adopt Knock
 - Users request in-app notifications
-- Notification fatigue becomes a problem (need user preferences)
-- You want to consolidate the Slack digest + email digest + checkin reminder logic into one orchestration platform
+- Notification fatigue becomes a support issue
 - Mobile app launch requires push notifications
-
-### When to Consider Resend
-- SendGrid becomes a pain point (deliverability, DX, pricing)
-- You want to unify email templates with your React component library
+- You want to consolidate digest logic into one orchestration platform

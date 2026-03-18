@@ -1,105 +1,128 @@
 ---
 layout: default
-title: "Auth — Clerk / WorkOS / Stytch"
+title: "Auth"
 ---
 
-[← Back to Overview](./)
+<h1>Auth <span class="gradient">WorkOS / Clerk / Stytch</span></h1>
+<span class="verdict continue">🔵 Continue WorkOS Migration</span>
 
-# Auth Consolidation: Clerk vs WorkOS vs Stytch
-
-**Verdict:** ✅ Continue WorkOS migration (already in progress)  
-**Migration Effort:** Already underway (Chris)  
-**Risk:** Low
-
----
+<div class="meta-bar">
+  <div class="meta-item"><span class="meta-label">Current</span><span class="meta-value">SST Auth → WorkOS (in progress)</span></div>
+  <div class="meta-item"><span class="meta-label">Owner</span><span class="meta-value">Chris</span></div>
+  <div class="meta-item"><span class="meta-label">Risk</span><span class="meta-value" style="color: var(--green)">Low</span></div>
+  <div class="meta-item"><span class="meta-label">Action</span><span class="meta-value">Don't disrupt</span></div>
+</div>
 
 ## Current State
 
 - **SST Auth** currently in production
 - **WorkOS migration in progress** — Chris is actively building this
-- Dual-user model: WorkOS user object linked to Brev's user table via WorkOS user ID
+- Dual-user model: WorkOS user object linked to Brev user table via WorkOS user ID
 - Org provisioning deferred to later phase
 
 ---
 
-## WorkOS (Current Migration Target)
+## WorkOS ✅ Continue
 
-**What it is:** Enterprise-ready auth platform with SSO, SCIM, directory sync, and organization management.
+Already the migration target. Enterprise-grade auth with SSO, SCIM, and directory sync.
 
-### Why It's the Right Choice (Already)
-
-| Feature | Details |
-|---------|---------|
-| **Enterprise SSO** | SAML/OIDC with 20+ identity providers |
-| **SCIM provisioning** | Automated user lifecycle management |
-| **Admin Portal** | Self-serve SSO setup for enterprise customers |
-| **Directory Sync** | Sync user data from AD, Okta, etc. |
-| **Migration in progress** | Sunk cost — Chris is building this now |
-
-### Pros
-- Migration already underway — switching would waste weeks of work
-- Strong enterprise features (SSO, SCIM, Directory Sync)
-- Great developer experience and documentation
-- Used by Discord, Perplexity, Plaid — proven at scale
-- Reasonable pricing: free up to 1M MAUs for AuthKit
-
-### Cons
-- Doesn't include billing/payments (still need Stripe separately)
-- Less polished pre-built UI components than Clerk
-- No built-in analytics or fraud detection
-
----
-
-## Clerk — Why Not Now
-
-**What it is:** Complete user management with auth, orgs, and recently added billing.
-
-| Factor | Assessment |
-|--------|-----------|
-| **$50M Series C** | Well-funded, growing fast |
-| **Auth + Billing** | Could theoretically consolidate with Stripe — but billing features are new/unproven |
-| **Beautiful UI** | Best drop-in React components in the market |
-| **Next.js integration** | Excellent App Router support |
-
-### Why Skip
-- **Would abandon WorkOS work in progress** — weeks of Chris's migration work wasted
-- **More expensive** for enterprise features (SSO/SCIM)
-- **Less mature enterprise SSO** than WorkOS
-- **Billing consolidation unproven** — still need Stripe for complex subscription management
-- **Migration effort: 6+ months** to restart from scratch
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>Migration already underway</strong> — Chris is building this now. Switching would waste weeks of work.</li>
+<li><strong>Enterprise SSO</strong> — SAML/OIDC with 20+ identity providers out of the box</li>
+<li><strong>SCIM provisioning</strong> — automated user lifecycle for enterprise customers</li>
+<li><strong>Admin Portal</strong> — self-serve SSO setup for customer IT teams</li>
+<li><strong>Directory Sync</strong> — sync from Active Directory, Okta, etc.</li>
+<li><strong>Proven at scale</strong> — used by Discord, Perplexity, Plaid</li>
+<li><strong>Free up to 1M MAUs</strong> — generous pricing for AuthKit</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>No billing included</strong> — still need Stripe separately (Clerk could consolidate)</li>
+<li><strong>Less polished UI components</strong> — pre-built components aren't as refined as Clerk's</li>
+<li><strong>No built-in fraud detection</strong> — need separate solution for bot/abuse prevention</li>
+<li><strong>No built-in analytics</strong> — auth metrics require custom dashboards</li>
+</ul>
+</div>
+</div>
 
 ---
 
-## Stytch — Why Not Now
+## Clerk — Not Now
 
-**What it is:** "Identity platform for humans & AI agents" — auth + authorization + security.
+$50M Series C. Beautiful UI components. Recently added billing. Could consolidate auth + payments.
 
-| Factor | Assessment |
-|--------|-----------|
-| **AI agent auth** | Most advanced toolkit for MCP authentication |
-| **Multi-tenancy** | Native organization support |
-| **Fraud detection** | Real-time abuse protection |
-| **Embeddable admin** | White-label admin portal |
-
-### Why Skip
-- **AI agent auth is forward-looking** — premature for current needs
-- **Smaller company** than WorkOS/Clerk — less proven at scale
-- **Would abandon WorkOS migration** — same problem as Clerk
-- **Migration effort: 6+ months**
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ What's Appealing</h4>
+<ul>
+<li><strong>Auth + Billing consolidation</strong> — could replace WorkOS + some Stripe functionality</li>
+<li><strong>Best-in-class UI components</strong> — drop-in React components that look great immediately</li>
+<li><strong>Excellent Next.js integration</strong> — built specifically for App Router</li>
+<li><strong>Fraud prevention</strong> — built-in bot detection and abuse prevention</li>
+<li><strong>Well-funded</strong> — $50M Series C, not going anywhere</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Why Skip</h4>
+<ul>
+<li><strong>Would abandon WorkOS migration</strong> — weeks of Chris's work wasted</li>
+<li><strong>More expensive</strong> for enterprise SSO/SCIM features</li>
+<li><strong>Less mature enterprise auth</strong> — WorkOS is purpose-built for enterprise</li>
+<li><strong>Billing features are new/unproven</strong> — Stripe is battle-tested</li>
+<li><strong>6+ month restart</strong> — complete migration reboot</li>
+</ul>
+</div>
+</div>
 
 ---
 
-## Recommendation
+## Stytch — Not Now
 
-| Option | Verdict | Reason |
-|--------|---------|--------|
-| **Continue WorkOS** | ✅ Do this | Already in progress, strong enterprise features |
-| **Switch to Clerk** | ❌ Skip | Would waste current migration work |
-| **Switch to Stytch** | ❌ Skip | AI agent features premature, smaller ecosystem |
+"Identity platform for humans & AI agents." Advanced MCP authentication toolkit.
 
-### Future Considerations
-- **If Clerk's billing matures** (6-12 months): Could consolidate auth + billing, reducing Stripe dependency. Worth revisiting in Q4.
-- **If AI agent auth becomes critical** (Brev agents need authenticated API access): Stytch's MCP auth could be relevant. Monitor their progress.
-- **WorkOS is also adding AI features** — they may cover AI agent auth needs as they evolve.
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ What's Appealing</h4>
+<ul>
+<li><strong>AI agent authentication</strong> — most advanced MCP auth toolkit available</li>
+<li><strong>Multi-tenancy</strong> — native organization support</li>
+<li><strong>Fraud detection</strong> — real-time abuse protection</li>
+<li><strong>Forward-thinking</strong> — positioned for AI-first future</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Why Skip</h4>
+<ul>
+<li><strong>AI agent auth is premature</strong> — not a current need for Brev</li>
+<li><strong>Smaller company</strong> — less proven at enterprise scale than WorkOS/Clerk</li>
+<li><strong>Would abandon WorkOS migration</strong> — same problem as Clerk</li>
+<li><strong>6+ month restart</strong> — complete migration reboot</li>
+</ul>
+</div>
+</div>
 
-**Bottom line:** Don't disrupt an active migration. Finish WorkOS, ship it, reassess in 6 months.
+---
+
+## Comparison
+
+| Feature | WorkOS (Current) | Clerk | Stytch |
+|---------|:-:|:-:|:-:|
+| **Enterprise SSO** | ✅ Best-in-class | ✅ Good | ✅ Good |
+| **SCIM** | ✅ | ✅ | ✅ |
+| **Billing** | ❌ (need Stripe) | ✅ New | ❌ |
+| **UI Components** | ⚠️ Functional | ✅ Beautiful | ⚠️ Functional |
+| **AI Agent Auth** | ❌ | ❌ | ✅ |
+| **Next.js** | ✅ | ✅ Best | ✅ |
+| **Migration effort** | In progress | 6+ months | 6+ months |
+
+## Decision
+
+**Finish the WorkOS migration.** Don't disrupt active work for marginal improvements. Revisit in 6 months:
+- If Clerk's billing matures → could consolidate auth + payments
+- If AI agent auth becomes critical → Stytch's MCP toolkit could be relevant
+- WorkOS is also evolving → may add AI agent features

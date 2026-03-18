@@ -1,48 +1,88 @@
 ---
 layout: default
-title: "Error Monitoring — Sentry"
+title: "Error Monitoring"
 ---
 
-[← Back to Overview](./)
+<h1>Error Monitoring <span class="gradient">Sentry</span></h1>
+<span class="verdict recommend">✅ Recommend — Critical Gap</span>
 
-# Error Monitoring: Sentry
-
-**Verdict:** ✅ Recommend — critical missing capability  
-**Migration Effort:** 1-2 weeks  
-**Risk:** Low
-
----
+<div class="meta-bar">
+  <div class="meta-item"><span class="meta-label">Replaces</span><span class="meta-value">Nothing (new capability)</span></div>
+  <div class="meta-item"><span class="meta-label">Effort</span><span class="meta-value">1-2 weeks</span></div>
+  <div class="meta-item"><span class="meta-label">Risk</span><span class="meta-value" style="color: var(--green)">Low</span></div>
+  <div class="meta-item"><span class="meta-label">Timeline</span><span class="meta-value">Q2 2026</span></div>
+</div>
 
 ## Current State
 
-No dedicated error monitoring tool identified in the codebase. Errors likely surface through:
-- CloudWatch logs (Lambda functions)
-- Browser console (frontend)
-- User reports / manual discovery
+**No dedicated error monitoring** identified in the codebase. Errors likely surface through CloudWatch logs (hard to search), browser console (invisible to team), and user reports (too late).
 
-This is a significant gap for a production application.
+> This is a significant gap for a production SaaS application serving enterprise customers.
 
 ---
 
 ## Why Sentry
 
-[Sentry](https://sentry.io) is the industry standard for application error tracking with excellent Next.js and Node.js support.
+[Sentry](https://sentry.io) is the industry standard for application error tracking with first-class Next.js and AWS Lambda support.
 
-### What It Adds
+### What Changes
 
-| Capability | Current | With Sentry |
-|-----------|---------|-------------|
-| **Error detection** | Manual / CloudWatch | Automatic capture + alerting |
-| **Stack traces** | CloudWatch logs (hard to read) | Rich, source-mapped stack traces |
-| **Error grouping** | None | Deduplicated, grouped by root cause |
-| **Release tracking** | None | Tie errors to specific deployments |
+| | Before (Current) | After (With Sentry) |
+|---|---|---|
+| **Error detection** | Manual discovery or CloudWatch | Automatic capture + Slack alert |
+| **Stack traces** | Raw CloudWatch logs | Source-mapped, readable traces |
+| **Error grouping** | None — every log is separate | Deduplicated by root cause |
+| **Release tracking** | None | Errors tied to specific deploys |
+| **User impact** | "Someone reported a bug" | "247 users hit this error since deploy" |
 | **Performance** | None | Web Vitals, transaction tracing |
-| **User context** | None | See which users hit errors |
-| **Slack alerts** | None | Immediate notification of new errors |
 
-### Integration with Brev's Stack
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>Catch errors before users report</strong> — especially in SQS consumers where failures silently go to DLQ</li>
+<li><strong>Release correlation</strong> — "this deploy introduced 3 new error types"</li>
+<li><strong>User impact visibility</strong> — "142 users affected by this bug"</li>
+<li><strong>Source maps</strong> — readable stack traces from minified production code</li>
+<li><strong>Slack integration</strong> — instant alerts in existing workspace</li>
+<li><strong>Performance monitoring</strong> — Web Vitals for the Next.js frontend</li>
+<li><strong>Session replay</strong> — see exactly what users did before hitting an error</li>
+<li><strong>First-class Next.js SDK</strong> — official <code>@sentry/nextjs</code> with App Router support</li>
+<li><strong>AWS Lambda SDK</strong> — <code>@sentry/aws-serverless</code> wraps handlers automatically</li>
+<li><strong>Free tier sufficient</strong> — 5k errors/month free</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>Another vendor</strong> — adds a dependency and billing relationship</li>
+<li><strong>Can be noisy</strong> — requires tuning alert thresholds to avoid fatigue</li>
+<li><strong>Bundle size</strong> — Sentry SDK adds ~30-40KB to client bundle (mitigated with lazy loading)</li>
+<li><strong>Privacy considerations</strong> — captures user context by default (configurable)</li>
+<li><strong>Cost at scale</strong> — can get expensive at high error volumes (fix your bugs!)</li>
+</ul>
+</div>
+</div>
 
-**Next.js App Router (Frontend):**
+### Real-World Impact
+
+The **Microsoft login bug** (blocking ALL external users for >1 year) would have been caught immediately:
+
+```
+🔴 Sentry Alert: New error in auth.handler
+   TypeError: Invalid tenant ID for external Microsoft user
+   ├── 847 events in last 24h
+   ├── Affected users: 312 unique
+   ├── First seen: 2025-01-15 (deploy abc123)
+   └── [View in Sentry →]
+```
+
+Instead, it was discovered in a team sync meeting — over a year later.
+
+## Integration
+
+### Frontend (Next.js App Router)
+
 ```typescript
 // sentry.client.config.ts
 import * as Sentry from "@sentry/nextjs";
@@ -50,14 +90,15 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.1, // 10% of transactions
+  tracesSampleRate: 0.1,
   replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
 });
 ```
 
-**Lambda Functions (Backend):**
+### Backend (Lambda Consumers)
+
 ```typescript
-// packages/functions/src/lib/sentry.ts
 import * as Sentry from "@sentry/aws-serverless";
 
 Sentry.init({
@@ -65,62 +106,40 @@ Sentry.init({
   environment: process.env.SST_STAGE,
 });
 
-// Wrap Lambda handlers
-export const withSentry = Sentry.wrapHandler;
-
-// Usage in queue consumer:
-export const main = withSentry(async (event: SQSEvent) => {
-  // ... existing handler logic
-  // Errors automatically captured with full context
+// Wrap any Lambda handler
+export const main = Sentry.wrapHandler(async (event: SQSEvent) => {
+  // Existing handler logic unchanged
+  // Errors automatically captured with full SQS context
 });
 ```
 
-### Key Benefits for Brev
-
-1. **Catch errors before users report them** — especially in SQS consumers where failures silently go to DLQ
-2. **Release correlation** — "did this deploy introduce new errors?"
-3. **User impact** — "how many users are hitting this bug?"
-4. **Performance monitoring** — Web Vitals for the Next.js frontend
-5. **Slack integration** — get alerts in your existing Slack workspace
-
 ### Pricing
 
-| Tier | Price | Limits |
-|------|-------|--------|
-| **Developer** | Free | 5k errors/month, 10k performance units |
-| **Team** | $26/month | 50k errors, 100k performance |
-| **Business** | $80/month | 100k errors, advanced features |
+| Tier | Price | Included |
+|------|-------|----------|
+| **Developer** | Free | 5k errors, 10k perf, 50 replays/month |
+| **Team** | $26/mo | 50k errors, 100k perf, 500 replays |
+| **Business** | $80/mo | 100k errors, advanced features |
 
-The free tier is likely sufficient to start.
+Free tier is likely sufficient to start.
 
-### Alternative: AWS X-Ray + CloudWatch
+## Migration Plan
 
-| Factor | Sentry | X-Ray + CloudWatch |
-|--------|--------|-------------------|
-| **Setup** | 1-2 days | Already partially set up |
-| **DX** | Excellent | Mediocre |
-| **Frontend** | ✅ Full support | ❌ Limited |
-| **Source maps** | ✅ | ❌ |
-| **Alerting** | ✅ Slack, email, etc. | CloudWatch Alarms |
-| **Cost** | Free tier or $26/mo | Included in AWS |
-| **Lambda** | ✅ Via `@sentry/aws-serverless` | ✅ Native |
-
-**Verdict:** Sentry is significantly better for developer experience. Use X-Ray only if minimizing vendors is a hard constraint.
-
-## Implementation Plan
-
-### Week 1: Setup + Frontend
-- Create Sentry project
-- Add `@sentry/nextjs` to frontend
-- Configure source map uploads in build
-- Set up Slack notification channel
-
-### Week 2: Backend + Queue Consumers
-- Add `@sentry/aws-serverless` to Lambda functions
-- Wrap critical queue consumers (RawFileProcessor, Firmgen, GoalArtgen)
-- Configure error grouping rules
-- Set up alert thresholds
+<div class="step">
+  <span class="step-num">1</span>
+  <div class="step-content">
+    <h4>Week 1: Frontend + Critical Lambda</h4>
+    <p>Add <code>@sentry/nextjs</code> to frontend. Configure source map uploads. Wrap the 3-4 most critical queue consumers with <code>@sentry/aws-serverless</code>. Set up Slack notification channel.</p>
+  </div>
+</div>
+<div class="step">
+  <span class="step-num">2</span>
+  <div class="step-content">
+    <h4>Week 2: Full Coverage + Tuning</h4>
+    <p>Wrap all remaining Lambda handlers. Configure error grouping rules. Set alert thresholds. Add SST secret for Sentry DSN. Create team dashboard.</p>
+  </div>
+</div>
 
 ## Decision
 
-**Essential.** Every production application needs error monitoring. The fact that Brev doesn't have dedicated error tracking is a significant gap. This is a 1-2 week implementation with immediate value. Do it in Q2.
+**Essential.** Every production SaaS needs error monitoring. The Microsoft login bug proves the cost of not having it. 1-2 weeks, free tier, immediate value. Do it.

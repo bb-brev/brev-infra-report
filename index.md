@@ -3,87 +3,132 @@ layout: default
 title: Home
 ---
 
-# Brev Dev Infrastructure Research Report
+<h1>Dev Infrastructure <span class="gradient">Research Report</span></h1>
+<p class="subtitle">Deep analysis of 12 tools evaluated against Brev's production stack — SST v3, Aurora PostgreSQL, Lambda, SQS, Next.js App Router. Each tool assessed for migration path, effort, risk, and real-world fit.</p>
 
-Deep analysis of developer infrastructure tools evaluated against Brev's actual production stack. Each tool is assessed for migration complexity, pros/cons, and fit with our SST v3 + AWS + Aurora PostgreSQL + Lambda + Next.js architecture.
+<div class="meta-bar">
+  <div class="meta-item">
+    <span class="meta-label">Tools Analyzed</span>
+    <span class="meta-value">12</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Recommended</span>
+    <span class="meta-value" style="color: var(--green)">4</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Evaluate</span>
+    <span class="meta-value" style="color: var(--yellow)">4</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Skip</span>
+    <span class="meta-value" style="color: var(--red)">4</span>
+  </div>
+  <div class="meta-item">
+    <span class="meta-label">Date</span>
+    <span class="meta-value">March 2026</span>
+  </div>
+</div>
+
+<p class="section-label">AI & Backend Pipeline</p>
+<div class="tool-grid">
+  <a href="{{ site.baseurl }}/trigger-dev" class="tool-card">
+    <span class="tool-badge eval">Evaluate</span>
+    <span class="tool-name">Trigger.dev</span>
+    <span class="tool-desc">TypeScript background jobs. Replaces 15+ SQS queues + Lambda consumers. 8-12 week migration.</span>
+  </a>
+  <a href="{{ site.baseurl }}/vercel-ai-sdk" class="tool-card">
+    <span class="tool-badge rec">Recommend</span>
+    <span class="tool-name">Vercel AI SDK</span>
+    <span class="tool-desc">Unified LLM interface. Replaces direct OpenAI + Anthropic SDKs. 2-3 week migration.</span>
+  </a>
+  <a href="{{ site.baseurl }}/langfuse" class="tool-card">
+    <span class="tool-badge eval">Evaluate</span>
+    <span class="tool-name">Langfuse</span>
+    <span class="tool-desc">LLM observability. Compare against internal tracing tool. 3-4 week evaluation.</span>
+  </a>
+</div>
+
+<p class="section-label">Data & Sync</p>
+<div class="tool-grid">
+  <a href="{{ site.baseurl }}/local-first-sync" class="tool-card">
+    <span class="tool-badge skip">Skip</span>
+    <span class="tool-name">Zero / PowerSync</span>
+    <span class="tool-desc">Local-first sync engines. Current RxDB + TanStack DB stack works. 6-12 month rewrite risk.</span>
+  </a>
+</div>
+
+<p class="section-label">Auth & Security</p>
+<div class="tool-grid">
+  <a href="{{ site.baseurl }}/auth" class="tool-card">
+    <span class="tool-badge cont">Continue</span>
+    <span class="tool-name">Auth — WorkOS / Clerk / Stytch</span>
+    <span class="tool-desc">Continue WorkOS migration. Clerk and Stytch not worth switching mid-migration.</span>
+  </a>
+  <a href="{{ site.baseurl }}/security" class="tool-card">
+    <span class="tool-badge skip">Skip</span>
+    <span class="tool-name">Arcjet</span>
+    <span class="tool-desc">Security middleware. Cloudflare already provides sufficient protection.</span>
+  </a>
+</div>
+
+<p class="section-label">Developer Experience</p>
+<div class="tool-grid">
+  <a href="{{ site.baseurl }}/feature-flags" class="tool-card">
+    <span class="tool-badge rec">Recommend</span>
+    <span class="tool-name">Feature Flags — PostHog</span>
+    <span class="tool-desc">Already using PostHog for analytics. Enable flags — zero new vendors. 1-2 weeks.</span>
+  </a>
+  <a href="{{ site.baseurl }}/error-monitoring" class="tool-card">
+    <span class="tool-badge rec">Recommend</span>
+    <span class="tool-name">Error Monitoring — Sentry</span>
+    <span class="tool-desc">Critical missing capability. Next.js + Lambda error tracking. 1-2 weeks.</span>
+  </a>
+  <a href="{{ site.baseurl }}/testing" class="tool-card">
+    <span class="tool-badge rec">Recommend</span>
+    <span class="tool-name">E2E Testing — Playwright</span>
+    <span class="tool-desc">Catch regressions like the Microsoft login bug. Cross-browser. 2-4 weeks.</span>
+  </a>
+</div>
+
+<p class="section-label">Infrastructure</p>
+<div class="tool-grid">
+  <a href="{{ site.baseurl }}/notifications" class="tool-card">
+    <span class="tool-badge eval">Evaluate</span>
+    <span class="tool-name">Knock / Resend</span>
+    <span class="tool-desc">Notification orchestration. Evaluate if in-app notifications become a priority.</span>
+  </a>
+  <a href="{{ site.baseurl }}/edge-computing" class="tool-card">
+    <span class="tool-badge eval">Evaluate</span>
+    <span class="tool-name">Cloudflare Workers</span>
+    <span class="tool-desc">Edge compute for latency-sensitive endpoints. Use surgically, not broadly.</span>
+  </a>
+  <a href="{{ site.baseurl }}/ci-cd" class="tool-card">
+    <span class="tool-badge cont">Continue</span>
+    <span class="tool-name">CI/CD Improvements</span>
+    <span class="tool-desc">Current SST autodeploy works well. Minor optimizations only.</span>
+  </a>
+</div>
 
 ---
 
-## Current Architecture Reference
+## Recommended Timeline
 
-| Layer | Technology |
-|-------|-----------|
-| **Database** | AWS Aurora Serverless PostgreSQL 16.6 via SST |
-| **ORM** | Drizzle Kit |
-| **Infra-as-code** | SST v3 (Ion), home=AWS |
-| **Networking** | Custom VPC, bastion + NAT (EC2) |
-| **Background Jobs** | 15+ SQS queues (FIFO + standard) + Lambda consumers + DLQs |
-| **Cron** | ~10 AWS EventBridge cron jobs via `sst.aws.Cron` |
-| **AI (Backend)** | OpenAI SDK, Anthropic SDK |
-| **AI (Frontend)** | Vercel AI SDK partial (`@ai-sdk/google`, `@ai-sdk/react`) |
-| **LLM Observability** | Internal tool (built in-house) |
-| **Vector DB** | Pinecone |
-| **Transcription** | AssemblyAI |
-| **Client** | RxDB + TanStack DB + TanStack Query, Next.js App Router |
-| **Storage** | S3, DynamoDB |
-| **Auth** | SST Auth + WorkOS migration in progress |
-| **Email** | SendGrid |
-| **Payments** | Stripe |
-| **Security** | Cloudflare Turnstile |
-| **Analytics** | Intercom, PostHog |
+<div class="card">
+<h3>🟢 Now</h3>
+<p>Vercel AI SDK backend adoption (2-3 weeks) + continue WorkOS migration</p>
+</div>
 
----
+<div class="card">
+<h3>🟡 Q2 2026</h3>
+<p>PostHog feature flags (1-2 wk) → Sentry (1-2 wk) → Playwright E2E (2-4 wk) → evaluate Langfuse vs internal tool (3-4 wk)</p>
+</div>
 
-## Tool Categories
+<div class="card">
+<h3>🔵 Q2–Q3 2026</h3>
+<p>Pilot Trigger.dev on 2-3 queues (RawFileProcessor first). Evaluate VPC access + cost before committing.</p>
+</div>
 
-### AI & Backend Pipeline
-- [Trigger.dev — Background Jobs](trigger-dev) — vs SQS + Lambda
-- [Vercel AI SDK — Unified LLM Interface](vercel-ai-sdk) — vs direct OpenAI/Anthropic SDKs
-- [Langfuse — LLM Observability](langfuse) — vs internal tracing tool
-
-### Data & Sync
-- [Local-First Sync — Zero / PowerSync](local-first-sync) — vs RxDB replication
-
-### Auth & Security
-- [Auth — Clerk / WorkOS / Stytch](auth) — vs current SST Auth + WorkOS migration
-- [Security Middleware — Arcjet](security) — vs Cloudflare Turnstile
-
-### Developer Experience
-- [Feature Flags — Statsig / LaunchDarkly / PostHog](feature-flags)
-- [Error Monitoring — Sentry](error-monitoring)
-- [Testing — Playwright E2E](testing)
-
-### Infrastructure
-- [Notifications — Knock / Resend](notifications) — vs SendGrid + Slack
-- [Edge Computing — Cloudflare Workers](edge-computing) — vs Lambda
-- [CI/CD Improvements](ci-cd)
-
----
-
-## Summary Matrix
-
-| Tool | Verdict | Priority | Effort | Risk |
-|------|---------|----------|--------|------|
-| **Trigger.dev** | Evaluate (pilot 2-3 queues) | Q2-Q3 | 8-12 weeks | Medium |
-| **Vercel AI SDK** | ✅ Recommend | Now | 2-3 weeks | Low |
-| **Langfuse** | Evaluate vs internal tool | Q2 | 3-4 weeks | Low |
-| **Zero / PowerSync** | Skip (too early) | — | 6-12 months | High |
-| **WorkOS** | ✅ Continue migration | Now | In progress | Low |
-| **Clerk / Stytch** | Skip | — | — | — |
-| **Arcjet** | Skip | — | 1-2 weeks | Medium |
-| **PostHog Feature Flags** | ✅ Recommend | Q2 | 1-2 weeks | Low |
-| **Sentry** | ✅ Recommend | Q2 | 1-2 weeks | Low |
-| **Playwright** | ✅ Recommend | Q2 | 2-4 weeks | Low |
-| **Knock** | Evaluate if needed | Q3 | 4-6 weeks | Medium |
-| **Resend** | Skip | — | — | — |
-| **Cloudflare Workers** | Evaluate selectively | Q3 | Varies | Medium |
-
-### Recommended Timeline
-
-- **Now:** Vercel AI SDK backend adoption + continue WorkOS migration
-- **Q2:** PostHog feature flags + Sentry + Playwright E2E + evaluate Langfuse
-- **Q2-Q3:** Pilot Trigger.dev on 2-3 queues
-- **Q3:** Evaluate Knock (in-app notifications), Cloudflare Workers (edge)
-- **Q4:** Reassess Zero/PowerSync maturity, Clerk billing consolidation
-
-**Total high-priority engineering effort: 4-8 weeks**
+<div class="card">
+<h3>⚪ Q3+ 2026</h3>
+<p>Evaluate Knock (if in-app notifications needed), Cloudflare Workers (if latency is measured problem). Reassess Zero/PowerSync maturity.</p>
+</div>

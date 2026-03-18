@@ -1,80 +1,63 @@
 ---
 layout: default
-title: "Security Middleware — Arcjet"
+title: "Arcjet"
 ---
 
-[← Back to Overview](./)
+<h1>Security Middleware <span class="gradient">Arcjet</span></h1>
+<span class="verdict skip">⏸ Skip — Cloudflare Covers This</span>
 
-# Security Middleware: Arcjet
-
-**Verdict:** Skip — Cloudflare already provides sufficient protection  
-**Migration Effort:** 1-2 weeks (low)  
-**Risk:** Medium (new/unproven company)
-
----
+<div class="meta-bar">
+  <div class="meta-item"><span class="meta-label">Replaces</span><span class="meta-value">Nothing (additive)</span></div>
+  <div class="meta-item"><span class="meta-label">Effort</span><span class="meta-value">1-2 weeks</span></div>
+  <div class="meta-item"><span class="meta-label">Risk</span><span class="meta-value" style="color: var(--yellow)">Medium</span></div>
+  <div class="meta-item"><span class="meta-label">Timeline</span><span class="meta-value">—</span></div>
+</div>
 
 ## What It Is
 
-[Arcjet](https://arcjet.com) is an AI-powered runtime security platform offering rate limiting, bot detection, PII detection, and email validation — built specifically for Next.js.
+[Arcjet](https://arcjet.com) — AI-powered runtime security for Next.js. Rate limiting, bot detection, PII detection, email validation at the middleware level.
 
 ## Current State
 
-Brev uses **Cloudflare Turnstile** for bot protection, with Cloudflare CDN providing DDoS protection and general security at the edge.
+Brev uses **Cloudflare Turnstile** for bot protection + Cloudflare CDN for DDoS protection at the edge.
 
-## What Arcjet Adds
+## What Arcjet Adds vs Cloudflare
 
 | Feature | Cloudflare (Current) | Arcjet |
-|---------|---------------------|--------|
-| **Bot detection** | Turnstile (challenge-based) | AI-powered, runtime detection |
-| **Rate limiting** | WAF rules (enterprise) | Per-route, code-level |
+|---------|:-:|:-:|
+| **Bot detection** | ✅ Turnstile (challenge) | ✅ AI-powered runtime |
 | **DDoS protection** | ✅ Built-in | ❌ Not its focus |
+| **Rate limiting** | ✅ WAF rules | ✅ Per-route, code-level |
 | **PII detection** | ❌ | ✅ Detect PII in requests |
 | **Email validation** | ❌ | ✅ Validate signups |
 | **CDN/Edge** | ✅ Full CDN | ❌ App-level only |
 
-## Integration Example
+<div class="pros-cons">
+<div class="pros-card">
+<h4>✅ Pros</h4>
+<ul>
+<li><strong>Native Next.js middleware</strong> — per-route security in code, not WAF config</li>
+<li><strong>PII detection</strong> — useful for compliance (SOC 2, GDPR)</li>
+<li><strong>Email validation</strong> — block disposable emails at signup</li>
+<li><strong>Quick implementation</strong> — 1-2 days for basic setup</li>
+<li><strong>Defense in depth</strong> — additional layer beyond Cloudflare</li>
+</ul>
+</div>
+<div class="cons-card">
+<h4>✗ Cons</h4>
+<ul>
+<li><strong>Largely duplicates Cloudflare</strong> — bot protection and rate limiting already handled at edge</li>
+<li><strong>New/unproven company</strong> — limited production track record</li>
+<li><strong>Performance overhead</strong> — middleware check on every request adds latency</li>
+<li><strong>May worsen Lambda cold starts</strong> — additional initialization in middleware</li>
+<li><strong>Unclear pricing</strong> — not well-documented</li>
+<li><strong>One more dependency</strong> — another moving part to debug when things go wrong</li>
+</ul>
+</div>
+</div>
 
-```typescript
-// middleware.ts
-import arcjet, { detectBot, rateLimit } from "@arcjet/next";
+## Decision
 
-const aj = arcjet({
-  key: process.env.ARCJET_KEY!,
-  rules: [
-    rateLimit({ mode: "LIVE", window: "1m", max: 100 }),
-    detectBot({ mode: "LIVE", allow: ["VERIFIED_BOT"] }),
-  ],
-});
+**Skip.** Cloudflare provides strong edge security. The unique value (PII detection, email validation) is niche and not a current priority.
 
-export default async function middleware(req: NextRequest) {
-  const decision = await aj.protect(req);
-  if (decision.isDenied()) {
-    return NextResponse.json({ error: "Blocked" }, { status: 403 });
-  }
-}
-```
-
-## Pros
-- Native Next.js App Router integration — middleware-level
-- Per-route rate limiting without WAF complexity
-- PII detection useful for compliance
-- Quick implementation (1-2 days)
-
-## Cons
-| Risk | Details |
-|------|---------|
-| **Duplicates Cloudflare** | Most security is already handled at the edge |
-| **New company** | Limited track record, unclear longevity |
-| **Performance overhead** | Adds latency to every request (middleware check) |
-| **Lambda cold starts** | May worsen cold start times in Lambda |
-| **Unclear pricing** | Not well-documented |
-| **Defense in depth vs complexity** | Another moving part to debug |
-
-## Recommendation
-
-**Skip.** Cloudflare provides strong edge security. Arcjet's per-route rate limiting is nice but can be achieved with Cloudflare WAF rules or simple middleware. The PII detection feature is interesting but not a current priority.
-
-**Revisit if:**
-- You need per-route rate limiting that Cloudflare WAF can't express
-- PII compliance becomes a requirement (SOC 2, GDPR data detection)
-- Arcjet matures and proves itself in production at scale
+**Revisit if:** PII compliance becomes a requirement, or you need per-route rate limiting that Cloudflare WAF can't express cleanly.
